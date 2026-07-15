@@ -110,6 +110,11 @@ button.primary:hover {
   color: var(--text);
 }
 
+.saved-badge {
+  color: var(--success);
+  font-weight: 600;
+}
+
 .deck-stats {
   display: flex;
   align-items: center;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import SwipeDeck, { DeckStats } from './SwipeDeck'
+import SwipeDeck, { DeckStats, formatBytes } from './SwipeDeck'
 import type { ScanProgress, ScanResult } from '../../shared/types'
 
 type Screen =
@@ -105,7 +105,8 @@ export default function App(): React.JSX.Element {
         <div className="screen center">
           <h1 className="title">All done 🎉</h1>
           <p className="progress">
-            Kept {screen.stats.kept} · Deleted {screen.stats.deleted}
+            Kept {screen.stats.kept} · Deleted {screen.stats.deleted} ·{' '}
+            {formatBytes(screen.stats.savedBytes)} freed
             {screen.skippedKept > 0 ? ` · ${screen.skippedKept} skipped (already kept)` : ''}
           </p>
           <button className="primary" onClick={pickAndScan}>

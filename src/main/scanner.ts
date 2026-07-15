@@ -49,8 +49,17 @@ async function walk(dir: string, out: string[], onProgress: ProgressFn): Promise
   }
 }
 
-/** Returns epoch ms, or null when the file is gone/unreadable. */
-async function photoDate(filePath: string): Promise<number | null> {
+/** Returns capture date + size, or null when the file is gone/unreadable. */
+async function photoMeta(filePath: string): Promise<{ date: number; size: number } | null> {
+  let stat
+  try {
+    stat = await fs.stat(filePath)
+  } catch {
+    // Vanished between walk and stat — drop it rather than showing a
+    // 1/1/1970 card that can't render.
+    return null
+  }
+
   const ext = path.extname(filePath).toLowerCase()
   if (EXIF_CAPABLE_EXTS.has(ext)) {
     try {
@@ -59,20 +68,13 @@ async function photoDate(filePath: string): Promise<number | null> {
       })
       const date: unknown = exif?.DateTimeOriginal ?? exif?.CreateDate
       if (date instanceof Date && !Number.isNaN(date.getTime())) {
-        return date.getTime()
+        return { date: date.getTime(), size: stat.size }
       }
     } catch {
       // Corrupt or unsupported EXIF — fall through to mtime.
     }
   }
-  try {
-    const stat = await fs.stat(filePath)
-    return stat.mtimeMs
-  } catch {
-    // Vanished between walk and stat — drop it rather than showing a
-    // 1/1/1970 card that can't render.
-    return null
-  }
+  return { date: stat.mtimeMs, size: stat.size }
 }
 
 /**
@@ -93,9 +95,9 @@ export async function scanDirectory(root: string, onProgress: ProgressFn): Promi
       const i = next++
       const filePath = files[i]
       const kind = VIDEO_EXTS.has(path.extname(filePath).toLowerCase()) ? 'video' : 'image'
-      const date = await photoDate(filePath)
-      if (date !== null) {
-        photos[i] = { path: filePath, date, kind }
+      const meta = await photoMeta(filePath)
+      if (meta !== null) {
+        photos[i] = { path: filePath, date: meta.date, size: meta.size, kind }
       }
       done++
       if (done % PROGRESS_EVERY === 0 || done === files.length) {

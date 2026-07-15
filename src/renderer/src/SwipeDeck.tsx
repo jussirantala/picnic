@@ -4,6 +4,14 @@ import type { PhotoEntry } from '../../shared/types'
 export interface DeckStats {
   kept: number
   deleted: number
+  /** Bytes freed by deletes this session */
+  savedBytes: number
+}
+
+export function formatBytes(bytes: number): string {
+  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(2)} GB`
+  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)} MB`
+  return `${Math.round(bytes / 1024)} KB`
 }
 
 interface Props {
@@ -43,7 +51,7 @@ export default function SwipeDeck({
   onSwitchFolder
 }: Props): React.JSX.Element {
   const [queue, setQueue] = useState<PhotoEntry[]>(photos)
-  const [stats, setStats] = useState<DeckStats>({ kept: 0, deleted: 0 })
+  const [stats, setStats] = useState<DeckStats>({ kept: 0, deleted: 0, savedBytes: 0 })
   const [ghosts, setGhosts] = useState<Ghost[]>([])
   const [dx, setDx] = useState(0)
   const [dragging, setDragging] = useState(false)
@@ -134,7 +142,7 @@ export default function SwipeDeck({
       if (dir === 'left') {
         pendingDelete.current = entry
         lastAction.current = { type: 'delete', entry }
-        setStats((s) => ({ ...s, deleted: s.deleted + 1 }))
+        setStats((s) => ({ ...s, deleted: s.deleted + 1, savedBytes: s.savedBytes + entry.size }))
       } else {
         lastAction.current = { type: 'keep', entry }
         setStats((s) => ({ ...s, kept: s.kept + 1 }))
@@ -160,7 +168,11 @@ export default function SwipeDeck({
     if (last.type === 'delete') {
       // The delete is still pending (deferred), so cancelling is enough.
       pendingDelete.current = null
-      setStats((s) => ({ ...s, deleted: s.deleted - 1 }))
+      setStats((s) => ({
+        ...s,
+        deleted: s.deleted - 1,
+        savedBytes: s.savedBytes - last.entry.size
+      }))
     } else {
       window.api.unkeep(root, last.entry.path).catch((err) => console.error('unkeep failed', err))
       setStats((s) => ({ ...s, kept: s.kept - 1 }))
@@ -231,6 +243,9 @@ export default function SwipeDeck({
   return (
     <div className="screen deck">
       <header className="deck-header">
+        <span className="saved-badge" title="Disk space freed this session">
+          💾 {formatBytes(stats.savedBytes)} saved
+        </span>
         <span>
           {position} / {total}
         </span>

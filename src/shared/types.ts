@@ -3,6 +3,8 @@ export interface PhotoEntry {
   path: string
   /** Best-known capture time (EXIF DateTimeOriginal, else file mtime), epoch ms */
   date: number
+  /** File size in bytes */
+  size: number
   kind: 'image' | 'video'
 }
 
