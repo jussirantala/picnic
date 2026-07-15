@@ -8,10 +8,9 @@ node_modules/
 # Build output
 dist/
 build/
-src-tauri/target/
-
-# Tauri generated
-src-tauri/gen/
+out/
+release/
+.tmp-verify/
 
 # Logs
 *.log
